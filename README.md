@@ -53,10 +53,10 @@ graph TD
 | **目录**              | **模块名称**     | **核心技术**                    | **说明文档**                                                 |
 | --------------------- | ---------------- | ------------------------------- | ------------------------------------------------------------ |
 | **`crawler/`**        | **分布式采集**   | Protobuf 逆向, Redis, Requests  | [查看文档](https://github.com/Lin-cmy/bigdataProject/blob/main/crawler/readme.md) |
-| **`hot/`**            | **高能时刻检测** | Spark SQL, NLP, 自适应阈值算法  | [查看文档](https://www.google.com/search?q=hot/README.md)    |
-| **`relation_graph/`** | **人物关系图谱** | 词频统计，共现分析，力导向算法 | [查看文档](https://www.google.com/search?q=relation_graph/README.md) |
-| **`tag/`**            | **标签关联挖掘** | FP-Growth, 关联规则挖掘         | [查看文档](https://www.google.com/search?q=tag/README.md)    |
-| **`data/`**           | **数据集**       | CSV, HDFS, 词频统计结果         | [查看文档](https://www.google.com/search?q=data/README.md)   |
+| **`hot/`**            | **高能时刻检测** | Spark SQL, NLP, 自适应阈值算法  | [查看文档](https://github.com/Lin-cmy/bigdataProject/blob/main/hot/readme.md)    |
+| **`relation_graph/`** | **人物关系图谱** | 词频统计，共现分析，力导向算法 | [查看文档](https://github.com/Lin-cmy/bigdataProject/blob/main/relation_graph/readme.md) |
+| **`tag/`**            | **标签关联挖掘** | FP-Growth, 关联规则挖掘         | [查看文档](https://github.com/Lin-cmy/bigdataProject/blob/main/tag/readme.md)    |
+| **`data/`**           | **数据集**       | CSV, HDFS, 词频统计结果         | [查看文档](https://github.com/Lin-cmy/bigdataProject/blob/main/data/readme.md)   |
 
 ------
 
