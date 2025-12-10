@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站弹幕大数据挖掘——番剧高能时刻</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        :root {
+            /* 科技蓝配色方案，呼应你的图片风格 */
+            --bg-color: #0b1120;       /* 深蓝黑背景 */
+            --card-bg: rgba(30, 41, 59, 0.7); /* 半透明卡片 */
+            --border-color: #334155;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --title-gradient: linear-gradient(90deg, #60a5fa, #3b82f6); /* 标题渐变蓝 */
+            --energy-color: #f472b6;   /* 高能粉 */
+            --energy-fill: linear-gradient(180deg, rgba(244, 114, 182, 0.4) 0%, rgba(244, 114, 182, 0.05) 100%);
+        }
+
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg-color); 
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-color) 60%);
+            color: var(--text-main);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 顶部标题栏 */
+        .header {
+            text-align: center;
+            padding: 40px 0 20px;
+            position: relative;
+        }
+        
+        .main-title {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: var(--title-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            text-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .sub-title {
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-top: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 剧集卡片 */
+        .episode-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 30px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, border-color 0.3s;
+        }
+
+        .episode-card:hover {
+            transform: translateY(-2px);
+            border-color: #60a5fa;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .ep-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .ep-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .ep-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+        
+        .stat-item i { margin-right: 6px; }
+        .stat-highlight { color: var(--energy-color); font-weight: bold; }
+
+        /* 高能进度条容器 */
+        .chart-wrapper {
+            height: 140px; /* 控制波形高度 */
+            width: 100%;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .chart-box { width: 100%; height: 100%; }
+
+        /* 加载动画 */
+        .loading { text-align: center; padding: 100px; color: var(--text-sub); }
+        
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 class="main-title">B 站弹幕大数据挖掘——番剧高能时刻分析</h1>
+    <div class="sub-title">基于弹幕数据的高能时刻分析与可视化</div>
+</div>
+
+<div class="container" id="main-container">
+    <div class="loading">
+        <p>正在从 Hadoop 集群加载分析结果...</p>
+        <p style="font-size:12px; opacity:0.6;">(Loading all_episodes_energy.json)</p>
+    </div>
+</div>
+
+<script>
+    // 格式化时间秒 -> MM:SS
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // 初始化
+    $(document).ready(function() {
+        // 加载 Spark 生成的 JSON
+        $.getJSON('all_episodes_energy.json', function(data) {
+            const $container = $('#main-container');
+            $container.empty();
+
+            data.forEach((ep, index) => {
+                // 简单的统计指标
+                const highPoints = ep.timeline.filter(t => t.is_high).length;
+                const maxVal = Math.max(...ep.timeline.map(t => t.value));
+                const duration = Math.floor(ep.timeline.length * 10 / 60); // 估算分钟数
+
+                // 生成 DOM
+                const chartId = `chart-${index}`;
+                const html = `
+                    <div class="episode-card">
+                        <div class="card-header">
+                            <div class="ep-title">
+                                <span class="ep-badge">EP${index + 1}</span>
+                                <span>${ep.bvid}</span>
+                            </div>
+                            <div class="ep-stats">
+                                <div class="stat-item"><i class="fa-regular fa-clock"></i> 时长: ${duration}m</div>
+                                <div class="stat-item"><i class="fa-solid fa-bolt"></i> 能量峰值: ${maxVal.toFixed(1)}</div>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div id="${chartId}" class="chart-box"></div>
+                        </div>
+                    </div>
+                `;
+                $container.append(html);
+
+                // 渲染图表
+                renderWaveform(chartId, ep.timeline);
+            });
+        }).fail(function() {
+            $('.loading').html('<span style="color:#ff4d4f">❌ 数据加载失败，请检查 python server 是否启动。</span>');
+        });
+    });
+
+    function renderWaveform(domId, timeline) {
+        const chart = echarts.init(document.getElementById(domId));
+        
+        const xData = timeline.map(t => t.time);
+        const yData = timeline.map(t => t.value);
+        
+        // 标记高能点
+        const markPoints = timeline.filter(t => t.is_high).map(t => ({
+            coord: [t.time, t.value],
+            value: 'High',
+            itemStyle: { color: '#ffffff', shadowBlur: 10, shadowColor: '#ffffff' }
+        }));
+
+        const option = {
+            grid: {
+                top: 10, bottom: 0, left: 0, right: 0
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                borderColor: '#334155',
+                textStyle: { color: '#e2e8f0' },
+                padding: [10, 15],
+                formatter: function(params) {
+                    const time = formatTime(params[0].axisValue);
+                    const val = params[0].value;
+                    return `<div style="font-size:12px; color:#94a3b8">时间点</div>
+                            <div style="font-size:16px; font-weight:bold; color:#f472b6">${time}</div>
+                            <div style="margin-top:5px; font-size:12px; color:#94a3b8">高能指数</div>
+                            <div style="font-size:14px; font-weight:bold; color:#fff">${val}</div>`;
+                },
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: { color: '#fff', width: 1, type: 'dashed' }
+                }
+            },
+            xAxis: {
+                type: 'category',
+                data: xData,
+                show: false
+            },
+            yAxis: {
+                type: 'value',
+                show: false,
+                min: 0
+            },
+            series: [{
+                name: 'High Energy',
+                type: 'line',
+                symbol: 'none',
+                smooth: 0.3, // 让曲线像水波一样平滑
+                sampling: 'lttb',
+                lineStyle: {
+                    width: 2,
+                    color: '#f472b6' // 线条颜色：亮粉色
+                },
+                areaStyle: {
+                    opacity: 1,
+                    // 渐变填充：从粉色到透明，营造"能量感"
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(244, 114, 182, 0.6)' },
+                        { offset: 1, color: 'rgba(244, 114, 182, 0.0)' }
+                    ])
+                },
+                markPoint: {
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    data: markPoints,
+                    label: { show: false }
+                },
+                data: xData.map((t, i) => [t, yData[i]])
+            }]
+        };
+
+        chart.setOption(option);
+        window.addEventListener('resize', () => chart.resize());
+    }
+</script>
+
+</body>
+</html>

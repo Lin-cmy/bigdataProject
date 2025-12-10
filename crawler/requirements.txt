@@ -1,0 +1,11 @@
+# Redis 客户端 (用于 task_producer.py 和 spider_worker.py 的任务队列)
+redis>=4.5.0
+
+# HTTP 请求库 (用于 spider_worker.py 下载数据)
+requests>=2.28.0
+
+# B站 API SDK (用于 spider_worker.py 获取视频基础信息)
+bilibili-api-python>=16.0.0
+
+# Protocol Buffers (用于 dm_pb2.py 解析二进制弹幕流)
+protobuf>=3.20.0
